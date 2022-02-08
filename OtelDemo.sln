@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OtelDemo.FirstAPI", "OtelDemo.FirstAPI\OtelDemo.FirstAPI.csproj", "{574CE715-8B85-48F3-A9E3-8070C079DFBB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OtelDemo.SecondAPI", "OtelDemo.SecondAPI\OtelDemo.SecondAPI.csproj", "{58FB0BEC-3ED4-46CB-9730-129D42E50B62}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OtelDemo.Commons", "OtelDemo.Commons\OtelDemo.Commons.csproj", "{C2E854EA-9D73-4C26-845E-44BBC8B9FF97}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{574CE715-8B85-48F3-A9E3-8070C079DFBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{574CE715-8B85-48F3-A9E3-8070C079DFBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{574CE715-8B85-48F3-A9E3-8070C079DFBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{574CE715-8B85-48F3-A9E3-8070C079DFBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58FB0BEC-3ED4-46CB-9730-129D42E50B62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58FB0BEC-3ED4-46CB-9730-129D42E50B62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58FB0BEC-3ED4-46CB-9730-129D42E50B62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58FB0BEC-3ED4-46CB-9730-129D42E50B62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2E854EA-9D73-4C26-845E-44BBC8B9FF97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2E854EA-9D73-4C26-845E-44BBC8B9FF97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2E854EA-9D73-4C26-845E-44BBC8B9FF97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2E854EA-9D73-4C26-845E-44BBC8B9FF97}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
