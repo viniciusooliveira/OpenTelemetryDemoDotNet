@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
@@ -38,46 +39,92 @@ namespace OtelDemo.Commons
                     });
                 });
             });
-            
-            services.AddOpenTelemetryTracing(builder =>
-                builder
-                    .SetErrorStatusOnException()
-                    .SetResourceBuilder(resourceBuilder)
-                    .SetSampler(
-                        new ParentBasedSampler(new TraceIdRatioBasedSampler(1)))
-                    .AddAspNetCoreInstrumentation()
-                    .AddSource(settings.AppName)
-                    .AddLegacySource(settings.AppName)
-                    .AddHttpClientInstrumentation(o =>
-                    {
-                        o.RecordException = true;
-                    })
-                    .AddRedisInstrumentation()
-                    .AddOtlpExporter(o =>
+
+            services.AddOpenTelemetry()
+                .ConfigureResource(r => 
+                    r.AddService(
+                        serviceName: settings.AppName,
+                        serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown",
+                        serviceInstanceId: Environment.MachineName
+                        )
+                )
+                .WithTracing(builder =>
+                {
+                    builder
+                        .AddSource(settings.AppName)
+                        .AddLegacySource(settings.AppName)
+                        .SetErrorStatusOnException()
+                        .SetResourceBuilder(resourceBuilder)
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation(o =>
+                        {
+                            o.RecordException = true;
+                        })
+                        .AddRedisInstrumentation()
+                        .AddOtlpExporter(o =>
                         {
                             o.Endpoint = new Uri(settings.OtlpEndpoint);
                             o.ExportProcessorType = ExportProcessorType.Batch;
-                        }
-                    )
-            );
-            
-            services.AddOpenTelemetryMetrics(builder =>
-                builder
-                    .SetResourceBuilder(resourceBuilder)
-                    .AddAspNetCoreInstrumentation()
-                    .AddMeter(settings.AppName)
-                    .AddOtlpExporter(o =>
+                        });
+                })
+                .WithMetrics(builder =>
+                {
+                    builder
+                        .SetResourceBuilder(resourceBuilder)
+                        .AddMeter(settings.AppName)
+                        .AddAspNetCoreInstrumentation()
+                        .AddOtlpExporter(o =>
                         {
                             o.Endpoint = new Uri(settings.OtlpEndpoint);
                             o.ExportProcessorType = ExportProcessorType.Simple;
-                            o.PeriodicExportingMetricReaderOptions = new PeriodicExportingMetricReaderOptions
+                            o.ExportProcessorType = ExportProcessorType.Batch;
+                            o.BatchExportProcessorOptions = new BatchExportActivityProcessorOptions
                             {
-                                ExportIntervalMilliseconds = 5000
+                                ScheduledDelayMilliseconds = 5000,
+                                ExporterTimeoutMilliseconds = 10000
                             };
-                            o.AggregationTemporality = AggregationTemporality.Delta;
-                        }
-                    )
-            );
+                        });
+                });
+            
+            // services.AddOpenTelemetryTracing(builder =>
+            //     builder
+            //         .SetErrorStatusOnException()
+            //         .SetResourceBuilder(resourceBuilder)
+            //         .SetSampler(
+            //             new ParentBasedSampler(new TraceIdRatioBasedSampler(1)))
+            //         .AddAspNetCoreInstrumentation()
+            //         .AddSource(settings.AppName)
+            //         .AddLegacySource(settings.AppName)
+            //         .AddHttpClientInstrumentation(o =>
+            //         {
+            //             o.RecordException = true;
+            //         })
+            //         .AddRedisInstrumentation()
+            //         .AddOtlpExporter(o =>
+            //             {
+            //                 o.Endpoint = new Uri(settings.OtlpEndpoint);
+            //                 o.ExportProcessorType = ExportProcessorType.Batch;
+            //             }
+            //         )
+            // );
+            //
+            // services.AddOpenTelemetryMetrics(builder =>
+            //     builder
+            //         .SetResourceBuilder(resourceBuilder)
+            //         .AddAspNetCoreInstrumentation()
+            //         .AddMeter(settings.AppName)
+            //         .AddOtlpExporter(o =>
+            //             {
+            //                 o.Endpoint = new Uri(settings.OtlpEndpoint);
+            //                 o.ExportProcessorType = ExportProcessorType.Simple;
+            //                 o.PeriodicExportingMetricReaderOptions = new PeriodicExportingMetricReaderOptions
+            //                 {
+            //                     ExportIntervalMilliseconds = 5000
+            //                 };
+            //                 o.AggregationTemporality = AggregationTemporality.Delta;
+            //             }
+            //         )
+            // );
 
             services.AddSingleton<MetricService>();
             services.AddSingleton<TraceService>();
