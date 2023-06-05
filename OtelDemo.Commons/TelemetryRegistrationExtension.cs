@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -17,11 +19,14 @@ namespace OtelDemo.Commons
     {
         public static void AddTelemetry(this IServiceCollection services, AppSettings settings)
         {
-            var resourceBuilder = ResourceBuilder.CreateDefault()
-                .AddService(settings.AppName)
+            ResourceBuilder resourceBuilder = ResourceBuilder.CreateDefault()
+                .AddService(serviceName: settings.AppName,
+                    serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown",
+                    serviceInstanceId: Environment.MachineName)
                 .AddAttributes(new[]
                 {
-                    new KeyValuePair<string, object>("hostname", Dns.GetHostName())
+                    new KeyValuePair<string, object>("hostname", Dns.GetHostName()),
+                    new KeyValuePair<string, object>("env", settings.EnvironmentName)
                 });
 
             services.AddLogging(logging =>
@@ -35,19 +40,31 @@ namespace OtelDemo.Commons
                     otel.AddOtlpExporter(o =>
                     {
                         o.Endpoint = new Uri(settings.OtlpEndpoint);
-                        o.ExportProcessorType = ExportProcessorType.Batch;
+                        o.Protocol = OtlpExportProtocol.Grpc;
+
+                        // o.HttpClientFactory = () =>
+                        // {
+                        //     var handler = new HttpClientHandler();
+                        //     handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                        //     handler.ServerCertificateCustomValidationCallback = 
+                        //         (httpRequestMessage, cert, cetChain, policyErrors) =>
+                        //         {
+                        //             return true;
+                        //         };
+                        //
+                        //     return new HttpClient(handler);
+                        // };
+
+                        o.ExportProcessorType = ExportProcessorType.Simple;
                     });
+
+                    // otel.AddConsoleExporter();
                 });
+
+                // logging.AddJsonConsole();
             });
 
             services.AddOpenTelemetry()
-                .ConfigureResource(r => 
-                    r.AddService(
-                        serviceName: settings.AppName,
-                        serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown",
-                        serviceInstanceId: Environment.MachineName
-                        )
-                )
                 .WithTracing(builder =>
                 {
                     builder
@@ -60,11 +77,11 @@ namespace OtelDemo.Commons
                         {
                             o.RecordException = true;
                         })
-                        .AddRedisInstrumentation()
                         .AddOtlpExporter(o =>
                         {
                             o.Endpoint = new Uri(settings.OtlpEndpoint);
-                            o.ExportProcessorType = ExportProcessorType.Batch;
+                            o.ExportProcessorType = ExportProcessorType.Simple;
+                            
                         });
                 })
                 .WithMetrics(builder =>
@@ -85,46 +102,6 @@ namespace OtelDemo.Commons
                             };
                         });
                 });
-            
-            // services.AddOpenTelemetryTracing(builder =>
-            //     builder
-            //         .SetErrorStatusOnException()
-            //         .SetResourceBuilder(resourceBuilder)
-            //         .SetSampler(
-            //             new ParentBasedSampler(new TraceIdRatioBasedSampler(1)))
-            //         .AddAspNetCoreInstrumentation()
-            //         .AddSource(settings.AppName)
-            //         .AddLegacySource(settings.AppName)
-            //         .AddHttpClientInstrumentation(o =>
-            //         {
-            //             o.RecordException = true;
-            //         })
-            //         .AddRedisInstrumentation()
-            //         .AddOtlpExporter(o =>
-            //             {
-            //                 o.Endpoint = new Uri(settings.OtlpEndpoint);
-            //                 o.ExportProcessorType = ExportProcessorType.Batch;
-            //             }
-            //         )
-            // );
-            //
-            // services.AddOpenTelemetryMetrics(builder =>
-            //     builder
-            //         .SetResourceBuilder(resourceBuilder)
-            //         .AddAspNetCoreInstrumentation()
-            //         .AddMeter(settings.AppName)
-            //         .AddOtlpExporter(o =>
-            //             {
-            //                 o.Endpoint = new Uri(settings.OtlpEndpoint);
-            //                 o.ExportProcessorType = ExportProcessorType.Simple;
-            //                 o.PeriodicExportingMetricReaderOptions = new PeriodicExportingMetricReaderOptions
-            //                 {
-            //                     ExportIntervalMilliseconds = 5000
-            //                 };
-            //                 o.AggregationTemporality = AggregationTemporality.Delta;
-            //             }
-            //         )
-            // );
 
             services.AddSingleton<MetricService>();
             services.AddSingleton<TraceService>();

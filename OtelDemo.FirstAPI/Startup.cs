@@ -17,12 +17,15 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Grpc.Net.Client;
 using OtelDemo.Commons;
 
 namespace OtelDemo.FirstAPI
 {
     public class Startup
     {
+        private ILogger<Startup> _logger;
+        
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -30,10 +33,11 @@ namespace OtelDemo.FirstAPI
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             var appSettings = Configuration.GetSection("AppSettings").Get<AppSettings>();
+
+            services.AddSingleton(appSettings);
             
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -43,9 +47,18 @@ namespace OtelDemo.FirstAPI
             services.AddTelemetry(appSettings);
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime, ILogger<Startup> logger)
         {
+            
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
+            _logger = logger;
+            
+            applicationLifetime.ApplicationStarted.Register(OnStartUp);
+            applicationLifetime.ApplicationStarted.Register(OnShutdown);
+            applicationLifetime.ApplicationStopped.Register(OnStop);
+            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -60,6 +73,21 @@ namespace OtelDemo.FirstAPI
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+        }
+
+        private void OnStartUp()
+        {
+            _logger.LogInformation("Aplicação inicializada.");
+        }
+        
+        private void OnShutdown()
+        {
+            _logger.LogInformation("Aplicação encerrada.");
+        }
+        
+        private void OnStop()
+        {
+            _logger.LogInformation("Aplicação encerrada.");
         }
     }
 }
